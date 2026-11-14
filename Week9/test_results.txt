@@ -1,0 +1,71 @@
+환경: Python 3.12.14 / Linux x86_64
+
+--- Cell 1 ---
+9주차 실습 준비 완료
+--- Cell 4 ---
+--- Cell 6 ---
+--- Cell 8 ---
+--- Cell 10 ---
+Bubble 48 개 테스트 통과
+Selection 48 개 테스트 통과
+Insertion 48 개 테스트 통과
+--- Cell 12 ---
+Bubble
+  초기 [5, 1, 4, 2, 8]
+  패스 1 [1, 4, 2, 5, 8]
+  패스 2 [1, 2, 4, 5, 8]
+  패스 3 [1, 2, 4, 5, 8]
+Selection
+  초기 [5, 1, 4, 2, 8]
+  패스 1 [1, 5, 4, 2, 8]
+  패스 2 [1, 2, 4, 5, 8]
+  패스 3 [1, 2, 4, 5, 8]
+  패스 4 [1, 2, 4, 5, 8]
+Insertion
+  초기 [5, 1, 4, 2, 8]
+  패스 1 [1, 5, 4, 2, 8]
+  패스 2 [1, 4, 5, 2, 8]
+  패스 3 [1, 2, 4, 5, 8]
+  패스 4 [1, 2, 4, 5, 8]
+--- Cell 14 ---
+Bubble [(1, 'C'), (2, 'A'), (2, 'B')] 동점 순서 유지: True
+Selection [(1, 'C'), (2, 'B'), (2, 'A')] 동점 순서 유지: False
+Insertion [(1, 'C'), (2, 'A'), (2, 'B')] 동점 순서 유지: True
+--- Cell 16 ---
+Bubble sorted {'comparisons': 7, 'swaps': 0, 'shifts': 0}
+Bubble reverse {'comparisons': 28, 'swaps': 28, 'shifts': 0}
+Selection sorted {'comparisons': 28, 'swaps': 0, 'shifts': 0}
+Selection reverse {'comparisons': 28, 'swaps': 4, 'shifts': 0}
+Insertion sorted {'comparisons': 7, 'swaps': 0, 'shifts': 0}
+Insertion reverse {'comparisons': 28, 'swaps': 0, 'shifts': 28}
+--- Cell 19 ---
+측정 완료: random, n=100
+측정 완료: random, n=200
+측정 완료: random, n=400
+측정 완료: random, n=800
+측정 완료: sorted, n=100
+측정 완료: sorted, n=200
+측정 완료: sorted, n=400
+측정 완료: sorted, n=800
+측정 완료: reverse, n=100
+측정 완료: reverse, n=200
+측정 완료: reverse, n=400
+측정 완료: reverse, n=800
+측정 완료: nearly_sorted, n=100
+측정 완료: nearly_sorted, n=200
+측정 완료: nearly_sorted, n=400
+측정 완료: nearly_sorted, n=800
+측정 완료: duplicates, n=100
+측정 완료: duplicates, n=200
+측정 완료: duplicates, n=400
+측정 완료: duplicates, n=800
+benchmark.csv: 중앙값 요약 60행
+benchmark_samples.csv: 개별 측정 300행
+--- Cell 21 ---
+<IPython.core.display.Image object>
+--- Cell 23 ---
+<IPython.core.display.Markdown object>
+boj2750_bubble.py: 4 local I/O cases passed
+boj2750_selection.py: 4 local I/O cases passed
+boj2750_insertion.py: 4 local I/O cases passed
+Practice operation counts and 7 inversions verified.
