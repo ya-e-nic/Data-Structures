@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>정렬 알고리즘 7종 비교 - Merge / Quick(Lomuto) / Quick(Hoare) / Radix / Bubble / Selection / Insertion</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", "Malgun Gothic", sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+    margin: 0;
+    padding: 20px;
+  }
+  h1 { text-align: center; font-size: 21px; margin-bottom: 18px; color: #f8fafc; }
+  .controls {
+    display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; align-items: center;
+    background: #1e293b; padding: 14px 20px; border-radius: 10px; margin-bottom: 16px;
+  }
+  .controls label { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+  .controls input[type=range] { width: 130px; }
+  .controls select {
+    padding: 6px 10px; border-radius: 6px; border: none; background: #334155; color: #f1f5f9; font-size: 13px;
+  }
+  .controls button {
+    padding: 8px 14px; border: none; border-radius: 6px; background: #3b82f6; color: white;
+    font-weight: bold; cursor: pointer; font-size: 13px;
+  }
+  .controls button:hover { background: #2563eb; }
+  .controls button:disabled { background: #475569; cursor: not-allowed; }
+  .controls button.stop { background: #ef4444; }
+  .controls button.stop:hover { background: #dc2626; }
+  .controls button.auto { background: #8b5cf6; }
+  .controls button.auto:hover { background: #7c3aed; }
+
+  .legend { display: flex; justify-content: center; gap: 14px; font-size: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+  .legend span { display: flex; align-items: center; gap: 5px; }
+  .dot { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+
+  .panels { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+  .panel {
+    flex: 1 1 460px; max-width: 560px; background: #1e293b; border-radius: 10px; padding: 14px;
+  }
+  .panel h2 { text-align: center; font-size: 15px; margin: 0 0 4px 0; color: #93c5fd; }
+  .panel .note { text-align: center; font-size: 11px; color: #64748b; margin-bottom: 10px; }
+  .list { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; min-height: 100px; align-items: flex-start; }
+  .cell { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .box {
+    width: 46px; height: 42px; display: flex; align-items: center; justify-content: center;
+    background: #334155; border: 2px solid #475569; border-radius: 6px; font-weight: bold;
+    font-size: 13px; color: #f1f5f9; position: relative; transition: background .08s, border-color .08s;
+  }
+  .box.range { border-color: #60a5fa; }
+  .box.leftzone { border-color: #38bdf8; }
+  .box.rightzone { border-color: #fb7185; }
+  .box.pivot { border-color: #a855f7; border-width: 3px; }
+  .box.compare { background: #f59e0b; color: #1e293b; }
+  .box.swap { background: #ef4444; }
+  .box.sorted { background: #22c55e; color: #052e16; }
+  .box.key { border-color: #facc15; border-width: 3px; }
+  .box.minidx { border-color: #f472b6; border-width: 3px; }
+  .digit-badge {
+    position: absolute; top: -8px; right: -8px; width: 16px; height: 16px; border-radius: 50%;
+    font-size: 9px; display: flex; align-items: center; justify-content: center; color: #0f172a; font-weight: bold;
+  }
+  .markers { display: flex; gap: 3px; flex-wrap: wrap; justify-content: center; min-height: 14px; }
+  .chip { font-size: 9px; padding: 1px 4px; border-radius: 3px; background: #0f172a; font-weight: bold; }
+  .chip.p { color: #c084fc; } .chip.i { color: #fbbf24; } .chip.j { color: #60a5fa; }
+  .chip.l { color: #94a3b8; } .chip.h { color: #94a3b8; } .chip.m { color: #34d399; }
+  .chip.k { color: #facc15; } .chip.mn { color: #f472b6; }
+
+  .stats { display: flex; justify-content: space-around; margin-top: 12px; font-size: 12px; color: #cbd5e1; border-top: 1px solid #334155; padding-top: 8px; }
+  .stats b { color: #f1f5f9; }
+
+  .results { margin-top: 24px; background: #1e293b; border-radius: 10px; padding: 16px; }
+  .results h2 { text-align: center; font-size: 16px; color: #93c5fd; margin-top:0; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { border: 1px solid #334155; padding: 6px 8px; text-align: center; }
+  th { background: #334155; color: #f1f5f9; }
+  td { background: #0f172a; color: #cbd5e1; }
+</style>
+</head>
+<body>
+
+<h1>병합 · 퀵(로무토) · 퀵(호어) · 기수 · 버블 · 선택 · 삽입 정렬 — 7종 공정 성능 비교</h1>
+
+<div class="controls">
+  <label>배열 크기: <span id="sizeVal">10</span>
+    <input type="range" id="sizeInput" min="6" max="18" value="10">
+  </label>
+  <label>속도: <span id="speedVal">보통</span>
+    <input type="range" id="speedInput" min="1" max="200" value="90">
+  </label>
+  <label>입력 패턴:
+    <select id="patternSelect">
+      <option value="random">무작위</option>
+      <option value="sorted">정렬됨(오름차순)</option>
+      <option value="reverse">역순(내림차순)</option>
+      <option value="duplicates">중복값 다수</option>
+    </select>
+  </label>
+  <button id="newArrayBtn">🔀 새 배열 생성</button>
+  <button id="startBtn">▶ 선택 패턴 실행</button>
+  <button id="autoBtn" class="auto">⏩ 4패턴 자동 비교</button>
+  <button id="stopBtn" class="stop">⏹ 정지</button>
+</div>
+
+<div class="legend">
+  <span><i class="dot" style="background:#334155;border:2px solid #60a5fa"></i>활성 구간</span>
+  <span><i class="dot" style="background:#f59e0b"></i>비교 중</span>
+  <span><i class="dot" style="background:#ef4444"></i>교환/이동</span>
+  <span><i class="dot" style="background:#334155;border:2px solid #a855f7"></i>피벗</span>
+  <span><i class="dot" style="background:#22c55e"></i>정렬 완료</span>
+  <span><i class="dot" style="background:#334155;border:2px solid #38bdf8"></i>왼쪽 부분배열</span>
+  <span><i class="dot" style="background:#334155;border:2px solid #fb7185"></i>오른쪽 부분배열</span>
+  <span><i class="dot" style="background:#334155;border:2px solid #facc15"></i>삽입 키(key)</span>
+  <span><i class="dot" style="background:#334155;border:2px solid #f472b6"></i>최솟값 위치</span>
+</div>
+
+<div class="panels">
+  <div class="panel">
+    <h2>병합 정렬 (Merge Sort)</h2>
+    <div class="note">분할-정복, 입력 패턴 무관하게 항상 O(n log n)</div>
+    <div class="list" id="merge-list"></div>
+    <div class="stats"><div>비교: <b id="merge-compare">0</b></div><div>이동: <b id="merge-swap">0</b></div><div>시간: <b id="merge-time">0.0s</b></div></div>
+  </div>
+  <div class="panel">
+    <h2>퀵 정렬 - 로무토 분할</h2>
+    <div class="note">정렬됨/역순 패턴에서 최악의 경우 O(n²) 발생</div>
+    <div class="list" id="lomuto-list"></div>
+    <div class="stats"><div>비교: <b id="lomuto-compare">0</b></div><div>교환: <b id="lomuto-swap">0</b></div><div>시간: <b id="lomuto-time">0.0s</b></div></div>
+  </div>
+  <div class="panel">
+    <h2>퀵 정렬 - 호어 분할</h2>
+    <div class="note">평균적으로 로무토 대비 교환 횟수 약 1/3</div>
+    <div class="list" id="hoare-list"></div>
+    <div class="stats"><div>비교: <b id="hoare-compare">0</b></div><div>교환: <b id="hoare-swap">0</b></div><div>시간: <b id="hoare-time">0.0s</b></div></div>
+  </div>
+  <div class="panel">
+    <h2>기수 정렬 (LSD Radix Sort)</h2>
+    <div class="note">비교 연산 없음(항상 0) — 자릿수 기반 안정 정렬, 입력 패턴 무관하게 일정</div>
+    <div class="list" id="radix-list"></div>
+    <div class="stats"><div>비교: <b id="radix-compare">0</b></div><div>이동: <b id="radix-swap">0</b></div><div>시간: <b id="radix-time">0.0s</b></div></div>
+  </div>
+  <div class="panel">
+    <h2>버블 정렬 (Bubble Sort)</h2>
+    <div class="note">인접한 두 원소를 비교·교환, 최선 O(n)(정렬됨) / 최악 O(n²)</div>
+    <div class="list" id="bubble-list"></div>
+    <div class="stats"><div>비교: <b id="bubble-compare">0</b></div><div>교환: <b id="bubble-swap">0</b></div><div>시간: <b id="bubble-time">0.0s</b></div></div>
+  </div>
+  <div class="panel">
+    <h2>선택 정렬 (Selection Sort)</h2>
+    <div class="note">미정렬 구간의 최솟값을 찾아 앞으로 보냄, 입력 패턴 무관하게 O(n²)</div>
+    <div class="list" id="selection-list"></div>
+    <div class="stats"><div>비교: <b id="selection-compare">0</b></div><div>교환: <b id="selection-swap">0</b></div><div>시간: <b id="selection-time">0.0s</b></div></div>
+  </div>
+  <div class="panel">
+    <h2>삽입 정렬 (Insertion Sort)</h2>
+    <div class="note">정렬된 앞부분에 원소를 끼워 넣음, 최선 O(n)(정렬됨) / 최악 O(n²)</div>
+    <div class="list" id="insertion-list"></div>
+    <div class="stats"><div>비교: <b id="insertion-compare">0</b></div><div>이동: <b id="insertion-swap">0</b></div><div>시간: <b id="insertion-time">0.0s</b></div></div>
+  </div>
+</div>
+
+<div class="results">
+  <h2>패턴별 결과 비교표</h2>
+  <div id="resultsTable">아직 실행된 결과가 없습니다.</div>
+</div>
+
+<script>
+const sizeInput = document.getElementById('sizeInput');
+const speedInput = document.getElementById('speedInput');
+const sizeVal = document.getElementById('sizeVal');
+const speedVal = document.getElementById('speedVal');
+const patternSelect = document.getElementById('patternSelect');
+const newArrayBtn = document.getElementById('newArrayBtn');
+const startBtn = document.getElementById('startBtn');
+const autoBtn = document.getElementById('autoBtn');
+const stopBtn = document.getElementById('stopBtn');
+
+const DIGIT_COLORS = ['#ef4444','#f97316','#f59e0b','#eab308','#84cc16','#22c55e','#06b6d4','#3b82f6','#8b5cf6','#ec4899'];
+const PATTERN_LABELS = { random:'무작위', sorted:'정렬됨(오름차순)', reverse:'역순(내림차순)', duplicates:'중복값 다수' };
+const ALGS = ['merge', 'lomuto', 'hoare', 'radix', 'bubble', 'selection', 'insertion'];
+const ALG_LABELS = { merge:'병합 정렬', lomuto:'퀵(로무토)', hoare:'퀵(호어)', radix:'기수 정렬', bubble:'버블 정렬', selection:'선택 정렬', insertion:'삽입 정렬' };
+
+let patternsData = {};
+let resultsData = {};
+let isRunning = false;
+let currentStopFlag = { stopped: false };
+
+function sleep(ms) { return new Promise(res => setTimeout(res, ms)); }
+function getDelay() { return 210 - Number(speedInput.value); }
+
+function generateDistinct(count, maxVal) {
+  const used = new Set();
+  const arr = [];
+  while (arr.length < count) {
+    const v = Math.floor(Math.random() * maxVal) + 1;
+    if (!used.has(v)) { used.add(v); arr.push(v); }
+  }
+  return arr;
+}
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function buildPatterns(size) {
+  const maxVal = Math.max(300, size * 20);
+  const pool = generateDistinct(size, maxVal);
+  const randomArr = shuffle(pool.slice());
+  const sortedArr = pool.slice().sort((a, b) => a - b);
+  const reverseArr = pool.slice().sort((a, b) => b - a);
+  const dupPoolSize = Math.max(3, Math.floor(size / 4));
+  const dupValues = generateDistinct(dupPoolSize, maxVal);
+  const duplicatesArr = Array.from({ length: size }, () => dupValues[Math.floor(Math.random() * dupValues.length)]);
+  return { random: randomArr, sorted: sortedArr, reverse: reverseArr, duplicates: duplicatesArr };
+}
+
+function render(containerId, arr, opts = {}) {
+  const { low, high, mid, leftRange, rightRange, pivot, i, j, compare = [], swap = [], sorted = new Set(), digitMap, key, minIdx } = opts;
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+  arr.forEach((val, idx) => {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    const box = document.createElement('div');
+    box.className = 'box';
+    box.textContent = val;
+    if (low !== undefined && high !== undefined && idx >= low && idx <= high) box.classList.add('range');
+    if (leftRange && idx >= leftRange[0] && idx <= leftRange[1]) box.classList.add('leftzone');
+    if (rightRange && idx >= rightRange[0] && idx <= rightRange[1]) box.classList.add('rightzone');
+    if (idx === pivot) box.classList.add('pivot');
+    if (idx === key) box.classList.add('key');
+    if (idx === minIdx) box.classList.add('minidx');
+    if (sorted.has(idx)) box.classList.add('sorted');
+    if (compare.includes(idx)) box.classList.add('compare');
+    if (swap.includes(idx)) box.classList.add('swap');
+    if (digitMap && digitMap[idx] !== undefined) {
+      const badge = document.createElement('span');
+      badge.className = 'digit-badge';
+      badge.style.background = DIGIT_COLORS[digitMap[idx]];
+      badge.textContent = digitMap[idx];
+      box.appendChild(badge);
+    }
+    const markers = document.createElement('div');
+    markers.className = 'markers';
+    const chips = [];
+    if (idx === pivot) chips.push(['p', 'piv']);
+    if (idx === i) chips.push(['i', 'i']);
+    if (idx === j) chips.push(['j', 'j']);
+    if (idx === low) chips.push(['l', 'low']);
+    if (idx === high) chips.push(['h', 'high']);
+    if (idx === mid) chips.push(['m', 'mid']);
+    if (idx === key) chips.push(['k', 'key']);
+    if (idx === minIdx) chips.push(['mn', 'min']);
+    chips.forEach(([cls, text]) => {
+      const chip = document.createElement('span');
+      chip.className = 'chip ' + cls;
+      chip.textContent = text;
+      markers.appendChild(chip);
+    });
+    cell.appendChild(box);
+    cell.appendChild(markers);
+    container.appendChild(cell);
+  });
+}
+
+function updateStats(prefix, compare, swap, time) {
+  document.getElementById(prefix + '-compare').textContent = compare;
+  document.getElementById(prefix + '-swap').textContent = swap;
+  document.getElementById(prefix + '-time').textContent = (time / 1000).toFixed(2) + 's';
+}
+function resetStatsAll() {
+  ALGS.forEach(p => updateStats(p, 0, 0, 0));
+}
+
+// ---------- 병합 정렬 ----------
+async function merge(arr, low, mid, high, containerId, prefix, stats, start, stopFlag) {
+  const left = arr.slice(low, mid + 1);
+  const right = arr.slice(mid + 1, high + 1);
+  let i = 0, j = 0, k = low;
+  while (i < left.length && j < right.length) {
+    if (stopFlag.stopped) return;
+    stats.compare++;
+    render(containerId, arr, { low, high, mid, leftRange: [low, mid], rightRange: [mid + 1, high], compare: [low + i, mid + 1 + j] });
+    updateStats(prefix, stats.compare, stats.swap, performance.now() - start);
+    await sleep(getDelay());
+    if (left[i] <= right[j]) { arr[k] = left[i]; i++; } else { arr[k] = right[j]; j++; }
+    stats.swap++; k++;
+    render(containerId, arr, { low, high, mid, leftRange: [low, mid], rightRange: [mid + 1, high], swap: [k - 1] });
+    updateStats(prefix, stats.compare, stats.swap, performance.now() - start);
+    await sleep(getDelay());
+  }
+  while (i < left.length) {
+    if (stopFlag.stopped) return;
+    arr[k] = left[i]; i++; stats.swap++; k++;
+    render(containerId, arr, { low, high, mid, leftRange: [low, mid], rightRange: [mid + 1, high], swap: [k - 1] });
+    updateStats(prefix, stats.compare, stats.swap, performance.now() - start);
+    await sleep(getDelay());
+  }
+  while (j < right.length) {
+    if (stopFlag.stopped) return;
+    arr[k] = right[j]; j++; stats.swap++; k++;
+    render(containerId, arr, { low, high, mid, leftRange: [low, mid], rightRange: [mid + 1, high], swap: [k - 1] });
+    updateStats(prefix, stats.compare, stats.swap, performance.now() - start);
+    await sleep(getDelay());
+  }
+}
+async function mergeSortRec(arr, low, high, containerId, prefix, stats, start, stopFlag) {
+  if (stopFlag.stopped || low >= high) return;
+  const mid = Math.floor((low + high) / 2);
+  render(containerId, arr, { low, high, mid });
+  await sleep(getDelay());
+  await mergeSortRec(arr, low, mid, containerId, prefix, stats, start, stopFlag);
+  await mergeSortRec(arr, mid + 1, high, containerId, prefix, stats, start, stopFlag);
+  if (stopFlag.stopped) return;
+  await merge(arr, low, mid, high, containerId, prefix, stats, start, stopFlag);
+}
+async function mergeSortRun(arr, containerId, prefix, stopFlag) {
+  const stats = { compare: 0, swap: 0 };
+  const start = performance.now();
+  await mergeSortRec(arr, 0, arr.length - 1, containerId, prefix, stats, start, stopFlag);
+  if (!stopFlag.stopped) {
+    render(containerId, arr, { sorted: new Set(arr.map((_, i) => i)) });
+    updateStats(prefix, stats.compare, stats.swap, performance.now() - start);
+  }
+  return { stats, elapsed: performance.now() - start };
+}
+
+// ---------- 퀵 정렬 - 로무토 ----------
+async function lomutoPartition(arr, low, high, containerId, prefix, stats, start, stopFlag, sortedSet) {
+  const pivotVal = arr[high];
+  let i = low - 1;
+  for (let j = low; j < high; j++) {
+    if (stopFlag.stopped) return -1;
+    stats.compare++;
+    render(containerId, arr, { low, high, pivot: high, i, j, compare: [j, high], sorted: sortedSet });
+    updateStats(prefix, stats.compare, stats.swap, performance.now() - start);
+    await sleep(getDelay());
+    if (arr[j] <= pivotVal) {
+      i++;
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+      stats.swap++;
+      render(containerId, arr, { low, high, pivot: high, i, j, swap: [i, j], sorted: sortedSet });
+      updateStats(prefix, stats.compare, stats.swap, performance.now() - start);
+      await sleep(getDelay());
+    }
+  }
+  [arr[i + 1], arr[high]] = [arr[high], arr[i + 1]];
+  stats.swap++;
+  render(containerId, arr, { low, high, pivot: i + 1, swap: [i + 1, high], sorted: sortedSet });
+  updateStats(prefix, stats.compare, stats.swap, performance.now() - start);
+  await sleep(getDelay());
+  return i + 1;
+}
+async function lomutoSort(arr, low, high, containerId, prefix, stats, start, stopFlag, sortedSet) {
+  if (stopFlag.stopped) return;
+  if (low < high) {
+    const p = await lomutoPartition(arr, low, high, containerId, prefix, stats, start, stopFlag, sortedSet);
+    if (stopFlag.stopped) return;
+    sortedSet.add(p);
+    await lomutoSort(arr, low, p - 1, containerId, prefix, stats, start, stopFlag, sortedSet);
+    await lomutoSort(arr, p + 1, high, containerId, prefix, stats, start, stopFlag, sortedSet);
+  } else if (low === high) sortedSet.add(low);
+}
+async function lomutoRun(arr, containerId, prefix, stopFlag) {
+  const stats = { compare: 0, swap: 0 };
+  const start = performance.now();
+  const sortedSet = new Set();
+  await lomutoSort(arr, 0, arr.length - 1, containerId, prefix, stats, start, stopFlag, sortedSet);
+  if (!stopFlag.stopped) {
+    render(containerId, arr, { sorted: new Set(arr.map((_, i) => i)) });
+    updateStats(prefix, stats.compare, stats.swap, performance.now() - start);
+  }
+  return { stats, elapsed: performance.now() - start };
+}
+
+// ---------- 퀵 정렬 - 호어 ----------
+async function hoarePartition(arr, low, high, containerId, prefix, stats, start, stopFlag, sortedSet) {
+  const pivotVal = arr[low];
+  let i = low - 1, j = high + 1;
+  while (true) {
+    do {
+      i++;
+      if (stopFlag.stopped) return -1;
+      stats.compare++;
+      render(containerId, arr, { low, high, pivot: low, i, j, compare: [i], sorted: sortedSet });
+      updateStats(prefix, stats.compare, stats.swap, performance.now() - start);
+      await sleep(getDelay());
+    } while (arr[i] < pivotVal);
+    do {
+      j--;
+      if (stopFlag.stopped) return -1;
+      stats.compare++;
+      render(containerId, arr, { low, high, pivot: low, i, j, compare: [j], sorted: sortedSet });
+      updateStats(prefix, stats.compare, stats.swap, performance.now() - start);
+      await sleep(getDelay());
+    } while (arr[j] > pivotVal);
+    if (i >= j) return j;
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+    stats.swap++;
+    render(containerId, arr, { low, high, pivot: low, i, j, swap: [i, j], sorted: sortedSet });
+    updateStats(prefix, stats.compare, stats.swap, performance.now() - start);
+    await sleep(getDelay());
+  }
+}
+async function hoareSort(arr, low, high, containerId, prefix, stats, start, stopFlag, sortedSet) {
+  if (stopFlag.stopped) return;
+  if (low >= high) { if (low === high) sortedSet.add(low); return; }
+  const p = await hoarePartition(arr, low, high, containerId, prefix, stats, start, stopFlag, sortedSet);
+  if (stopFlag.stopped) return;
+  await hoareSort(arr, low, p, containerId, prefix, stats, start, stopFlag, sortedSet);
+  await hoareSort(arr, p + 1, high, containerId, prefix, stats, start, stopFlag, sortedSet);
+}
+async function hoareRun(arr, containerId, prefix, stopFlag) {
+  const stats = { compare: 0, swap: 0 };
+  const start = performance.now();
+  const sortedSet = new Set();
+  await hoareSort(arr, 0, arr.length - 1, containerId, prefix, stats, start, stopFlag, sortedSet);
+  if (!stopFlag.stopped) {
+    render(containerId, arr, { sorted: new Set(arr.map((_, i) => i)) });
+    updateStats(prefix, stats.compare, stats.swap, performance.now() - start);
+  }
+  return { stats, elapsed: performance.now() - start };
+}
+
+// ---------- 기수 정렬 ----------
+async function radixRun(arr, containerId, prefix, stopFlag) {
+  const stats = { compare: 0, swap: 0 };
+  const start = performance.now();
+  const maxVal = Math.max(...arr, 0);
+  const maxDigits = maxVal === 0 ? 1 : Math.floor(Math.log10(maxVal)) + 1;
+  let place = 1;
+  for (let d = 0; d < maxDigits; d++) {
+    if (stopFlag.stopped) return { stats, elapsed: performance.now() - start };
+    const digitMap = {};
+    arr.forEach((v, idx) => digitMap[idx] = Math.floor(v / place) % 10);
+    render(containerId, arr, { digitMap });
+    updateStats(prefix, stats.compare, stats.swap, performance.now() - start);
+    await sleep(getDelay());
+    const count = new Array(10).fill(0);
+    for (const v of arr) count[Math.floor(v / place) % 10]++;
+    for (let c = 1; c < 10; c++) count[c] += count[c - 1];
+    const output = new Array(arr.length);
+    for (let idx = arr.length - 1; idx >= 0; idx--) {
+      const dg = Math.floor(arr[idx] / place) % 10;
+      count[dg]--;
+      output[count[dg]] = arr[idx];
+      stats.swap++;
+    }
+    for (let idx = 0; idx < arr.length; idx++) arr[idx] = output[idx];
+    render(containerId, arr, { swap: arr.map((_, idx) => idx) });
+    updateStats(prefix, stats.compare, stats.swap, performance.now() - start);
+    await sleep(getDelay());
+    place *= 10;
+  }
+  if (!stopFlag.stopped) {
+    render(containerId, arr, { sorted: new Set(arr.map((_, i) => i)) });
+    updateStats(prefix, stats.compare, stats.swap, performance.now() - start);
+  }
+  return { stats, elapsed: performance.now() - start };
+}
+
+// ---------- 버블 정렬 ----------
+async function bubbleRun(arr, containerId, prefix, stopFlag) {
+  const stats = { compare: 0, swap: 0 };
+  const start = performance.now();
+  const n = arr.length;
+  const sortedSet = new Set();
+  for (let pass = 0; pass < n - 1; pass++) {
+    let swapped = false;
+    for (let j = 0; j < n - pass - 1; j++) {
+      if (stopFlag.stopped) return { stats, elapsed: performance.now() - start };
+      stats.compare++;
+      render(containerId, arr, { low: 0, high: n - pass - 1, compare: [j, j + 1], sorted: sortedSet });
+      updateStats(prefix, stats.compare, stats.swap, performance.now() - start);
+      await sleep(getDelay());
+      if (arr[j] > arr[j + 1]) {
+        [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
+        stats.swap++;
+        swapped = true;
+        render(containerId, arr, { low: 0, high: n - pass - 1, swap: [j, j + 1], sorted: sortedSet });
+        updateStats(prefix, stats.compare, stats.swap, performance.now() - start);
+        await sleep(getDelay());
+      }
+    }
+    sortedSet.add(n - pass - 1);
+    if (!swapped) break;
+  }
+  if (!stopFlag.stopped) {
+    render(containerId, arr, { sorted: new Set(arr.map((_, i) => i)) });
+    updateStats(prefix, stats.compare, stats.swap, performance.now() - start);
+  }
+  return { stats, elapsed: performance.now() - start };
+}
+
+// ---------- 선택 정렬 ----------
+async function selectionRun(arr, containerId, prefix, stopFlag) {
+  const stats = { compare: 0, swap: 0 };
+  const start = performance.now();
+  const n = arr.length;
+  const sortedSet = new Set();
+  for (let i = 0; i < n - 1; i++) {
+    let minIdx = i;
+    for (let j = i + 1; j < n; j++) {
+      if (stopFlag.stopped) return { stats, elapsed: performance.now() - start };
+      stats.compare++;
+      render(containerId, arr, { low: i, high: n - 1, key: i, minIdx, compare: [j], sorted: sortedSet });
+      updateStats(prefix, stats.compare, stats.swap, performance.now() - start);
+      await sleep(getDelay());
+      if (arr[j] < arr[minIdx]) {
+        minIdx = j;
+        render(containerId, arr, { low: i, high: n - 1, key: i, minIdx, compare: [j], sorted: sortedSet });
+        await sleep(getDelay());
+      }
+    }
+    if (minIdx !== i) {
+      [arr[i], arr[minIdx]] = [arr[minIdx], arr[i]];
+      stats.swap++;
+      render(containerId, arr, { low: i, high: n - 1, key: i, swap: [i, minIdx], sorted: sortedSet });
+      updateStats(prefix, stats.compare, stats.swap, performance.now() - start);
+      await sleep(getDelay());
+    }
+    sortedSet.add(i);
+  }
+  sortedSet.add(n - 1);
+  if (!stopFlag.stopped) {
+    render(containerId, arr, { sorted: new Set(arr.map((_, i) => i)) });
+    updateStats(prefix, stats.compare, stats.swap, performance.now() - start);
+  }
+  return { stats, elapsed: performance.now() - start };
+}
+
+// ---------- 삽입 정렬 ----------
+async function insertionRun(arr, containerId, prefix, stopFlag) {
+  const stats = { compare: 0, swap: 0 };
+  const start = performance.now();
+  const n = arr.length;
+  const sortedSet = new Set([0]);
+  for (let i = 1; i < n; i++) {
+    if (stopFlag.stopped) return { stats, elapsed: performance.now() - start };
+    const key = arr[i];
+    let j = i - 1;
+    render(containerId, arr, { low: 0, high: i, key: i, i, sorted: sortedSet });
+    updateStats(prefix, stats.compare, stats.swap, performance.now() - start);
+    await sleep(getDelay());
+    while (j >= 0) {
+      if (stopFlag.stopped) return { stats, elapsed: performance.now() - start };
+      stats.compare++;
+      render(containerId, arr, { low: 0, high: i, key: i, j, compare: [j], sorted: sortedSet });
+      updateStats(prefix, stats.compare, stats.swap, performance.now() - start);
+      await sleep(getDelay());
+      if (arr[j] > key) {
+        arr[j + 1] = arr[j];
+        stats.swap++;
+        render(containerId, arr, { low: 0, high: i, key: i, j, swap: [j + 1], sorted: sortedSet });
+        updateStats(prefix, stats.compare, stats.swap, performance.now() - start);
+        await sleep(getDelay());
+        j--;
+      } else break;
+    }
+    arr[j + 1] = key;
+    if (j + 1 !== i) stats.swap++;
+    sortedSet.add(i);
+    render(containerId, arr, { low: 0, high: i, key: j + 1, swap: [j + 1], sorted: sortedSet });
+    updateStats(prefix, stats.compare, stats.swap, performance.now() - start);
+    await sleep(getDelay());
+  }
+  if (!stopFlag.stopped) {
+    render(containerId, arr, { sorted: new Set(arr.map((_, i) => i)) });
+    updateStats(prefix, stats.compare, stats.swap, performance.now() - start);
+  }
+  return { stats, elapsed: performance.now() - start };
+}
+
+// ---------- 실행/결과 ----------
+const RUNNERS = {
+  merge: mergeSortRun,
+  lomuto: lomutoRun,
+  hoare: hoareRun,
+  radix: radixRun,
+  bubble: bubbleRun,
+  selection: selectionRun,
+  insertion: insertionRun,
+};
+const LIST_IDS = { merge:'merge-list', lomuto:'lomuto-list', hoare:'hoare-list', radix:'radix-list', bubble:'bubble-list', selection:'selection-list', insertion:'insertion-list' };
+
+function renderResultsTable() {
+  const order = ['random', 'sorted', 'reverse', 'duplicates'];
+  let html = '<table><thead><tr><th>입력 패턴</th>';
+  ALGS.forEach(a => html += `<th>${ALG_LABELS[a]}</th>`);
+  html += '</tr></thead><tbody>';
+  order.forEach(p => {
+    const r = resultsData[p];
+    html += `<tr><td>${PATTERN_LABELS[p]}</td>`;
+    ALGS.forEach(alg => {
+      if (r && r[alg]) {
+        const d = r[alg];
+        html += `<td>비교 ${d.compare}<br>이동 ${d.swap}<br>${(d.time / 1000).toFixed(2)}s</td>`;
+      } else html += '<td>-</td>';
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('resultsTable').innerHTML = html;
+}
+
+async function runOnePattern(pattern) {
+  const arrSource = patternsData[pattern].slice();
+  ALGS.forEach(a => render(LIST_IDS[a], arrSource));
+  resetStatsAll();
+  currentStopFlag = { stopped: false };
+  const promises = ALGS.map(a => RUNNERS[a](arrSource.slice(), LIST_IDS[a], a, currentStopFlag));
+  const outs = await Promise.all(promises);
+  if (!currentStopFlag.stopped) {
+    const result = {};
+    ALGS.forEach((a, idx) => {
+      result[a] = { compare: outs[idx].stats.compare, swap: outs[idx].stats.swap, time: outs[idx].elapsed };
+    });
+    resultsData[pattern] = result;
+    renderResultsTable();
+  }
+}
+
+function toggleButtons(running) {
+  startBtn.disabled = running; newArrayBtn.disabled = running;
+  autoBtn.disabled = running; patternSelect.disabled = running; sizeInput.disabled = running;
+}
+
+function drawInitial() {
+  const p = patternSelect.value;
+  const arr = patternsData[p];
+  ALGS.forEach(a => render(LIST_IDS[a], arr));
+  resetStatsAll();
+}
+
+function newArray() {
+  if (isRunning) return;
+  currentStopFlag.stopped = true;
+  patternsData = buildPatterns(Number(sizeInput.value));
+  resultsData = {};
+  drawInitial();
+  renderResultsTable();
+}
+
+async function runSingle() {
+  if (isRunning) return;
+  isRunning = true; toggleButtons(true);
+  await runOnePattern(patternSelect.value);
+  isRunning = false; toggleButtons(false);
+}
+
+async function autoRunAll() {
+  if (isRunning) return;
+  isRunning = true; toggleButtons(true);
+  const order = ['random', 'sorted', 'reverse', 'duplicates'];
+  for (const p of order) {
+    patternSelect.value = p;
+    await runOnePattern(p);
+    if (currentStopFlag.stopped) break;
+  }
+  isRunning = false; toggleButtons(false);
+}
+
+function stopAll() {
+  currentStopFlag.stopped = true;
+  isRunning = false;
+  toggleButtons(false);
+}
+
+sizeInput.addEventListener('input', () => { sizeVal.textContent = sizeInput.value; });
+sizeInput.addEventListener('change', () => { if (!isRunning) newArray(); });
+speedInput.addEventListener('input', () => {
+  const v = Number(speedInput.value);
+  speedVal.textContent = v > 150 ? '매우 빠름' : v > 100 ? '빠름' : v > 50 ? '보통' : '느림';
+});
+patternSelect.addEventListener('change', () => { if (!isRunning) drawInitial(); });
+newArrayBtn.addEventListener('click', newArray);
+startBtn.addEventListener('click', runSingle);
+autoBtn.addEventListener('click', autoRunAll);
+stopBtn.addEventListener('click', stopAll);
+
+// 초기화
+patternsData = buildPatterns(Number(sizeInput.value));
+drawInitial();
+renderResultsTable();
+</script>
+</body>
+</html>

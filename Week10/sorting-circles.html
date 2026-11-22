@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>정렬 알고리즘 — 숫자 동그라미 배열 시각화</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F2F4F6; --grid:#DCE3EA; --ink:#17222B; --ink-soft:#5A6B78;
+  --line:#C9D4DD; --card:#FFFFFF;
+  --cmp:#F59E0B; --swap:#EF4444; --pivot:#7C3AED; --sorted:#10B981; --acc:#1D4ED8;
+  --mono:'IBM Plex Mono', ui-monospace, monospace;
+  --sans:'IBM Plex Sans KR', system-ui, sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--paper);
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size:28px 28px;
+  color:var(--ink); font-family:var(--sans); line-height:1.6;
+}
+.wrap{max-width:860px;margin:0 auto;padding:56px 20px 80px}
+
+header .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.18em;color:var(--ink-soft);text-transform:uppercase}
+header h1{font-size:clamp(30px,5.5vw,44px);font-weight:700;line-height:1.2;letter-spacing:-0.02em;margin:10px 0 14px}
+header h1 .u{box-shadow:inset 0 -0.32em 0 #BFD3F2}
+header p.lede{color:var(--ink-soft);max-width:580px;font-size:15.5px}
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:16px;font-family:var(--mono);font-size:11.5px;color:var(--ink-soft)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:12px;height:12px;border-radius:50%;display:inline-block;border:1.5px solid transparent}
+.toc{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+.toc a{font-family:var(--mono);font-size:12.5px;text-decoration:none;color:var(--ink);border:1px solid var(--line);background:var(--card);padding:7px 12px;border-radius:999px;transition:border-color .15s, transform .15s}
+.toc a:hover{border-color:var(--ink);transform:translateY(-1px)}
+.toc a b{font-weight:600;margin-right:6px;color:var(--ink-soft)}
+
+section{
+  background:var(--card);border:1px solid var(--line);border-radius:14px;
+  margin-top:34px;padding:26px 26px 22px;
+  box-shadow:0 1px 0 rgba(23,34,43,.04), 0 10px 28px -18px rgba(23,34,43,.18);
+  scroll-margin-top:24px;
+}
+.sec-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.sec-head .no{font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:var(--acc);font-weight:600}
+.sec-head h2{font-size:21px;font-weight:700;letter-spacing:-0.01em}
+.chips{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}
+.chip{font-family:var(--mono);font-size:11px;padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--ink-soft);white-space:nowrap}
+.sec-desc{color:var(--ink-soft);font-size:14px;margin:10px 0 4px;max-width:660px}
+.sec-desc code{font-family:var(--mono);font-size:12.5px;background:#EEF2F6;border-radius:4px;padding:1px 5px}
+
+.stage-scroll{overflow-x:auto;padding:6px 2px 2px;margin-top:16px}
+.stage{position:relative;margin:0 auto;border:1px solid var(--line);border-radius:10px;background:
+  repeating-linear-gradient(0deg, transparent 0 23px, rgba(23,34,43,.05) 23px 24px);}
+.range{position:absolute;top:8px;bottom:44px;pointer-events:none;
+  border-left:2px dashed var(--acc);border-right:2px dashed var(--acc);
+  background:color-mix(in srgb, var(--acc) 7%, transparent);
+  opacity:0;transition:left .35s ease, width .35s ease, opacity .3s}
+.range.on{opacity:1}
+.range .tag{position:absolute;top:4px;left:50%;transform:translateX(-50%);
+  font-family:var(--mono);font-size:10.5px;color:var(--acc);
+  background:var(--card);border:1px solid var(--acc);border-radius:999px;padding:1px 8px;white-space:nowrap}
+
+.node{position:absolute;width:46px;height:46px;border-radius:50%;
+  background:#E7EDF3;border:2px solid #C9D4DD;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:15px;font-weight:600;color:var(--ink);
+  transition:transform .38s cubic-bezier(.5,.1,.2,1), background .2s, border-color .2s, color .2s}
+.node.cmp{background:#FEF3E2;border-color:#F59E0B;color:#8a5a04}
+.node.swap{background:#FEE2E2;border-color:#EF4444;color:#991B1B}
+.node.pivot{background:#F3E8FF;border-color:#7C3AED;color:#5B21B6}
+.node.key{background:#E4ECFE;border-color:#1D4ED8;color:#1D4ED8}
+.node.done{background:#D9F5EC;border-color:#10B981;color:#047857}
+.dig{position:absolute;font-family:var(--mono);font-size:10.5px;font-weight:600;
+  border:1px solid var(--line);border-radius:4px;background:var(--card);
+  padding:0 5px;line-height:1.6;opacity:0;transition:opacity .25s}
+.dig.on{opacity:1}
+.ruler{position:absolute;font-family:var(--mono);font-size:10px;color:var(--ink-soft);text-align:center;width:46px}
+
+.buckets{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;max-width:640px;margin:12px auto 0}
+.buckets .bk{font-family:var(--mono);font-size:11px;text-align:center;border:1px solid var(--line);
+  border-radius:6px;background:#FAFBFC;padding:3px 2px;color:var(--ink-soft);transition:all .2s}
+.buckets .bk b{display:block;font-size:12.5px;color:var(--ink);font-weight:600}
+.buckets .bk.hot{border-color:var(--cmp);background:#FEF3E2;color:#B45309}
+.buckets .bk.hot b{color:#B45309}
+
+.caption{display:flex;align-items:center;gap:10px;margin-top:18px;font-family:var(--mono);font-size:13px}
+.caption .stepno{flex:none;font-size:10.5px;font-weight:600;letter-spacing:.08em;color:var(--acc);
+  border:1px solid var(--acc);border-radius:4px;padding:2px 7px;min-width:118px;text-align:center}
+.caption .msg{color:var(--ink);min-height:1.4em}
+.log{margin-top:10px;height:100px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;background:#FAFBFC;
+  font-family:var(--mono);font-size:11.5px;line-height:1.75;padding:8px 12px;color:var(--ink-soft)}
+.log .ln b{color:var(--ink);font-weight:500}
+.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:14px}
+.controls button{font-family:var(--mono);font-size:12.5px;font-weight:500;cursor:pointer;border:1px solid var(--line);
+  background:var(--card);color:var(--ink);padding:8px 14px;border-radius:8px;transition:all .15s}
+.controls button:hover{border-color:var(--acc);color:var(--acc)}
+.controls button:active{transform:translateY(1px)}
+.controls button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.controls button.primary{background:var(--ink);border-color:var(--ink);color:#fff}
+.controls button.primary:hover{background:var(--acc);border-color:var(--acc)}
+.controls button.primary.playing{background:var(--swap);border-color:var(--swap)}
+.controls select{font-family:var(--mono);font-size:12px;border:1px solid var(--line);border-radius:8px;padding:7px 8px;background:var(--card);color:var(--ink);cursor:pointer}
+.controls .lbl{font-family:var(--mono);font-size:11px;color:var(--ink-soft);margin-left:2px}
+
+footer{margin-top:52px;font-family:var(--mono);font-size:11.5px;color:var(--ink-soft);text-align:center}
+@media (prefers-reduced-motion: reduce){
+  *{transition:none !important;animation:none !important}
+  html{scroll-behavior:auto}
+}
+@media (max-width:560px){
+  .wrap{padding:36px 14px 60px}
+  section{padding:20px 14px 18px}
+  .chips{margin-left:0}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Sorting · Number Bubbles</div>
+  <h1>숫자 동그라미 <span class="u">배열 정렬</span></h1>
+  <p class="lede">숫자가 적힌 동그라미 노드들이 배열 칸에서 움직이며 정렬되는 과정을
+  다섯 가지 알고리즘으로 보여줍니다. 재생하거나 한 단계씩 따라가 보세요.</p>
+  <div class="legend">
+    <span><i style="background:#FEF3E2;border-color:#F59E0B"></i>비교</span>
+    <span><i style="background:#FEE2E2;border-color:#EF4444"></i>교환·탐색</span>
+    <span><i style="background:#E4ECFE;border-color:#1D4ED8"></i>후보·기록</span>
+    <span><i style="background:#F3E8FF;border-color:#7C3AED"></i>피벗</span>
+    <span><i style="background:#D9F5EC;border-color:#10B981"></i>확정</span>
+  </div>
+  <nav class="toc">
+    <a href="#s1"><b>01</b>선택 정렬</a>
+    <a href="#s2"><b>02</b>병합 정렬</a>
+    <a href="#s3"><b>03</b>퀵 정렬 · 로무토</a>
+    <a href="#s4"><b>04</b>퀵 정렬 · 호어</a>
+    <a href="#s5"><b>05</b>기수 정렬</a>
+  </nav>
+</header>
+
+<section id="s1" style="--acc:#0F766E">
+  <div class="sec-head">
+    <span class="no">01 — SELECTION</span><h2>선택 정렬</h2>
+    <div class="chips"><span class="chip">O(n²)</span><span class="chip">교환 적음</span></div>
+  </div>
+  <p class="sec-desc">앞에서부터 <b>정렬된 구간(초록)</b>을 늘려갑니다. 남은 칸에서 최솟값(파랑)을 찾아
+  구간 바로 다음 칸과 교환합니다.</p>
+  <div class="stage-scroll"><div class="stage" data-stage></div></div>
+  <div class="caption"><span class="stepno" data-stepno>READY</span><span class="msg" data-msg></span></div>
+  <div class="log" data-log></div>
+  <div class="controls" data-controls></div>
+</section>
+
+<section id="s2" style="--acc:#1D4ED8">
+  <div class="sec-head">
+    <span class="no">02 — MERGE</span><h2>병합 정렬</h2>
+    <div class="chips"><span class="chip">O(n log n)</span><span class="chip">안정</span></div>
+  </div>
+  <p class="sec-desc">절반씩 <b>분할</b>(점선 범위)한 뒤, 정렬된 두 조각을 한 칸씩 비교해
+  <b>병합</b>하며 다시 합칩니다.</p>
+  <div class="stage-scroll"><div class="stage" data-stage></div></div>
+  <div class="caption"><span class="stepno" data-stepno>READY</span><span class="msg" data-msg></span></div>
+  <div class="log" data-log></div>
+  <div class="controls" data-controls></div>
+</section>
+
+<section id="s3" style="--acc:#B45309">
+  <div class="sec-head">
+    <span class="no">03 — QUICK · LOMUTO</span><h2>퀵 정렬 · 로무토 분할</h2>
+    <div class="chips"><span class="chip">평균 O(n log n)</span><span class="chip">스왑 많음</span></div>
+  </div>
+  <p class="sec-desc">마지막 원소를 <b>피벗(보라)</b>으로 삼아 한 번 훑으며 피벗 이하를 왼쪽으로 모읍니다.
+  분할이 끝나면 피벗이 <b>최종 자리에 확정</b>되고 양쪽에 재귀합니다.</p>
+  <div class="stage-scroll"><div class="stage" data-stage></div></div>
+  <div class="caption"><span class="stepno" data-stepno>READY</span><span class="msg" data-msg></span></div>
+  <div class="log" data-log></div>
+  <div class="controls" data-controls></div>
+</section>
+
+<section id="s4" style="--acc:#7C3AED">
+  <div class="sec-head">
+    <span class="no">04 — QUICK · HOARE</span><h2>퀵 정렬 · 호어 분할</h2>
+    <div class="chips"><span class="chip">평균 O(n log n)</span><span class="chip">스왑 적음</span></div>
+  </div>
+  <p class="sec-desc">첫 원소를 <b>피벗(보라)</b>으로 삼고 두 포인터가 양쪽 끝에서 안쪽으로 이동합니다
+  (주황 = i 탐색, 빨강 = j 탐색). 교차하면 분할 종료, <code>[0..j]</code>/<code>[j+1..]</code>로 재귀.</p>
+  <div class="stage-scroll"><div class="stage" data-stage></div></div>
+  <div class="caption"><span class="stepno" data-stepno>READY</span><span class="msg" data-msg></span></div>
+  <div class="log" data-log></div>
+  <div class="controls" data-controls></div>
+</section>
+
+<section id="s5" style="--acc:#DB2777">
+  <div class="sec-head">
+    <span class="no">05 — RADIX (LSD)</span><h2>기수 정렬</h2>
+    <div class="chips"><span class="chip">O(d·(n+b))</span><span class="chip">비교 0회</span></div>
+  </div>
+  <p class="sec-desc">값을 비교하지 않고 <b>자릿수별로 분류</b>합니다. 동그라미 아래 배지가 현재 보고 있는
+  자릿수이고, 아래 10개 버킷에 개수가 표시됩니다. 분류 후 버킷 0→9 순서로 재배치합니다.</p>
+  <div class="stage-scroll"><div class="stage" data-stage></div></div>
+  <div class="buckets" data-buckets></div>
+  <div class="caption"><span class="stepno" data-stepno>READY</span><span class="msg" data-msg></span></div>
+  <div class="log" data-log></div>
+  <div class="controls" data-controls></div>
+</section>
+
+<footer>정렬 알고리즘 시각화 · 선택 / 병합 / 퀵(로무토·호어) / 기수(LSD) — 각 카드는 독립적으로 재생됩니다</footer>
+</div>
+
+<script>
+"use strict";
+/* ===== 상수 & 유틸 ===== */
+const PITCH = 58, NODE = 46, PAD = 12, BASE_MS = 400;
+
+function genUnique(n, min, max){
+  const used = new Set(), out = [];
+  while(out.length < n){
+    const v = min + Math.floor(Math.random() * (max - min + 1));
+    if(!used.has(v)){ used.add(v); out.push(v); }
+  }
+  return out;
+}
+
+/* ===== 프레임 기반 플레이어 =====
+   각 알고리즘은 실행 전 전체 프레임(스냅샷)을 계산하고,
+   재생은 프레임을 순서대로 적용하는 방식 — 런타임 상태 버그 없음 */
+class Player{
+  constructor(section, cfg){
+    this.cfg = cfg;
+    this.stage = section.querySelector('[data-stage]');
+    this.logEl = section.querySelector('[data-log]');
+    this.msgEl = section.querySelector('[data-msg]');
+    this.stepEl = section.querySelector('[data-stepno]');
+    this.ctlEl = section.querySelector('[data-controls]');
+    this.bucketsEl = section.querySelector('[data-buckets]');
+    this.buildControls();
+    this.reset(false);
+  }
+
+  buildControls(){
+    const mk = (label, fn, primary) => {
+      const b = document.createElement('button');
+      b.textContent = label;
+      if(primary) b.className = 'primary';
+      b.addEventListener('click', fn);
+      return b;
+    };
+    this.btnPlay = mk('▶ 실행', () => this.togglePlay(), true);
+    this.ctlEl.append(
+      this.btnPlay,
+      mk('한 단계 ›', () => { this.pause(); this.goto(this.stepIdx + 1); }),
+      mk('‹ 이전', () => { this.pause(); this.goto(this.stepIdx - 1); }),
+      mk('초기화', () => this.reset(false)),
+      mk('셔플', () => this.reset(true))
+    );
+    const lbl = document.createElement('span');
+    lbl.className = 'lbl'; lbl.textContent = '속도';
+    this.sel = document.createElement('select');
+    [['느리게', 0.6], ['보통', 1], ['빠르게', 1.8], ['매우 빠르게', 3]].forEach(([t, v]) => {
+      const o = document.createElement('option');
+      o.textContent = t; o.value = v;
+      this.sel.appendChild(o);
+    });
+    this.sel.value = '1';
+    this.ctlEl.append(lbl, this.sel);
+  }
+
+  reset(shuffle){
+    this.pause();
+    if(shuffle || !this.vals) this.vals = genUnique(this.cfg.n, this.cfg.min, this.cfg.max);
+    const vals = this.vals, n = vals.length;
+    this.stage.innerHTML = '';
+    this.logEl.innerHTML = '';
+    this.logN = 0;
+
+    /* 프레임 생성 (순수 계산 — DOM 없음) */
+    this.frames = [];
+    const F = this.frames;
+    this.cfg.sim(F, vals);
+
+    /* 스테이지 크기 & 요소 */
+    const stageW = PAD * 2 + (n - 1) * PITCH + NODE;
+    this.stage.style.width = stageW + 'px';
+    this.stage.style.height = '150px';
+    this.stage.innerHTML = '<div class="range"><span class="tag"></span></div>';
+    this.rangeEl = this.stage.querySelector('.range');
+    this.rangeTag = this.stage.querySelector('.tag');
+
+    this.nodes = new Map();      // id -> node element
+    this.digs  = new Map();      // id -> digit badge element
+    vals.forEach((v, i) => {
+      const nd = document.createElement('div');
+      nd.className = 'node';
+      nd.textContent = String(v);
+      const dg = document.createElement('span');
+      dg.className = 'dig';
+      this.stage.appendChild(nd);
+      this.stage.appendChild(dg);
+      this.nodes.set(i, nd);
+      this.digs.set(i, dg);
+    });
+    /* 인덱스 자 (0 1 2 ...) */
+    for(let i = 0; i < n; i++){
+      const r = document.createElement('div');
+      r.className = 'ruler';
+      r.textContent = String(i);
+      r.style.left = (PAD + i * PITCH) + 'px';
+      r.style.top = '96px';
+      this.stage.appendChild(r);
+    }
+    /* 버킷 (기수 정렬용) */
+    if(this.bucketsEl){
+      this.bucketsEl.innerHTML = '';
+      this.bkCells = [];
+      for(let d = 0; d < 10; d++){
+        const c = document.createElement('div');
+        c.className = 'bk';
+        const b = document.createElement('b'); b.textContent = '0';
+        c.appendChild(b);
+        c.appendChild(document.createTextNode(String(d)));
+        this.bucketsEl.appendChild(c);
+        this.bkCells.push(c);
+      }
+    }
+
+    this.stepIdx = 0;
+    if(F.length > 0) this.apply(F[0]);
+    this.setLabel('READY');
+    this.msgEl.textContent = '▶ 실행을 누르면 시작합니다. (총 ' + F.length + '단계)';
+  }
+
+  /* 프레임 적용: 전체 상태를 그대로 반영 */
+  apply(f){
+    const pos = new Map();
+    f.order.forEach((id, slot) => pos.set(id, slot));
+    pos.forEach((slot, id) => {
+      const nd = this.nodes.get(id), dg = this.digs.get(id);
+      nd.style.transform = 'translate(' + (PAD + slot * PITCH) + 'px, 34px)';
+      dg.style.left = (PAD + slot * PITCH) + 'px';
+      nd.className = 'node' + (f.done.includes(id) ? ' done' : (f.hl[id] ? ' ' + f.hl[id] : ''));
+      const d = f.digits ? f.digits[id] : null;
+      if(d != null){
+        dg.textContent = d;
+        dg.style.top = '92px';
+        dg.classList.add('on');
+      } else {
+        dg.classList.remove('on');
+      }
+    });
+    if(f.range){
+      this.rangeEl.style.left = (PAD + f.range.lo * PITCH - 4) + 'px';
+      this.rangeEl.style.width = (f.range.len * PITCH + 2) + 'px';
+      this.rangeTag.textContent = f.range.label || '';
+      this.rangeEl.classList.add('on');
+    } else {
+      this.rangeEl.classList.remove('on');
+    }
+    if(this.bkCells){
+      this.bkCells.forEach((c, d) => {
+        const b = c.querySelector('b');
+        b.textContent = f.buckets ? String(f.buckets[d]) : '0';
+        c.classList.toggle('hot', f.hotBucket === d);
+      });
+    }
+    if(f.cap){
+      this.msgEl.textContent = f.cap;
+      this.logN++;
+      const ln = document.createElement('div');
+      ln.className = 'ln';
+      const b = document.createElement('b');
+      b.textContent = String(this.logN).padStart(3, '0');
+      ln.appendChild(b);
+      ln.appendChild(document.createTextNode('  ' + f.cap));
+      this.logEl.appendChild(ln);
+      while(this.logEl.children.length > 60) this.logEl.firstChild.remove();
+      this.logEl.scrollTop = this.logEl.scrollHeight;
+    }
+  }
+
+  goto(idx){
+    if(idx < 0) idx = 0;
+    if(idx > this.frames.length - 1) idx = this.frames.length - 1;
+    this.stepIdx = idx;
+    this.apply(this.frames[idx]);
+    this.setLabel('STEP ' + String(idx).padStart(3, '0') + ' / ' + String(this.frames.length - 1).padStart(3, '0'));
+    return true;
+  }
+
+  setLabel(t){ this.stepEl.textContent = t; }
+
+  togglePlay(){ this.playing ? this.pause() : this.play(); }
+  play(){
+    if(this.stepIdx >= this.frames.length - 1) this.goto(0);
+    this.playing = true;
+    this.btnPlay.textContent = '⏸ 일시정지';
+    this.btnPlay.classList.add('playing');
+    const tick = () => {
+      if(!this.playing) return;
+      if(this.stepIdx >= this.frames.length - 1){ this.pause(); return; }
+      this.goto(this.stepIdx + 1);
+      setTimeout(tick, BASE_MS / parseFloat(this.sel.value));
+    };
+    tick();
+  }
+  pause(){
+    this.playing = false;
+    this.btnPlay.textContent = '▶ 실행';
+    this.btnPlay.classList.remove('playing');
+  }
+}
+
+/* ===== 스냅샷 헬퍼 ===== */
+/* vals: 값(인덱스=원소 id), order: 현재 슬롯 배치(id 배열) */
+function makeSnapper(F, vals){
+  const done = new Set();
+  let range = null;
+  return {
+    order: vals.map((_, i) => i),
+    setRange(lo, len, label){ range = (len == null) ? null : { lo, len, label }; },
+    snap(hl, cap, extra){
+      const f = {
+        order: [...this.order],
+        hl: hl ? { ...hl } : {},
+        done: [...done],
+        range,
+        cap: cap || ''
+      };
+      if(extra) Object.assign(f, extra);
+      F.push(f);
+    },
+    mark(id){ done.add(id); },
+    markAll(){ vals.forEach((_, i) => done.add(i)); }
+  };
+}
+const V = (s, slot) => vals_of(s)[s.order[slot]]; /* 사용 안 함(가독용) */
+function vals_of(s){ return s._vals; }
+
+/* ===== 01 · 선택 정렬 ===== */
+function simSelection(F, vals){
+  const n = vals.length;
+  const s = makeSnapper(F, vals);
+  s._vals = vals;
+  s.snap({}, '정렬되지 않은 배열입니다. 앞에서부터 정렬 구간을 늘려갑니다.');
+  for(let i = 0; i < n - 1; i++){
+    let min = i;
+    s.snap({ [s.order[min]]: 'key' }, '[' + i + '..] 최솟값 탐색 시작 — 후보 ' + vals[s.order[min]]);
+    for(let j = i + 1; j < n; j++){
+      const smaller = vals[s.order[j]] < vals[s.order[min]];
+      s.snap({ [s.order[j]]: 'cmp', [s.order[min]]: 'key' },
+        '비교: ' + vals[s.order[j]] + ' vs 후보 ' + vals[s.order[min]] + ' → ' + (smaller ? '새 후보!' : '유지'));
+      if(smaller){
+        min = j;
+        s.snap({ [s.order[min]]: 'key' }, '새 최솟값 후보: ' + vals[s.order[min]]);
+      }
+    }
+    if(min !== i){
+      s.snap({ [s.order[i]]: 'swap', [s.order[min]]: 'swap' },
+        '교환: 최솟값 ' + vals[s.order[min]] + ' ↔ ' + vals[s.order[i]]);
+      const a = s.order[i], b = s.order[min];
+      s.order[i] = b; s.order[min] = a;
+      s.snap({}, vals[s.order[i]] + '이(가) ' + i + '번 칸으로 이동');
+    }
+    s.mark(s.order[i]);
+    s.snap({}, (i + 1) + '번 칸 확정 — 정렬된 구간이 늘었습니다');
+  }
+  s.mark(s.order[n - 1]);
+  s.snap({}, '마지막 칸도 자동 확정');
+  s.markAll();
+  s.snap({}, '✔ 정렬 완료!');
+}
+
+/* ===== 02 · 병합 정렬 ===== */
+function simMerge(F, vals){
+  const n = vals.length;
+  const s = makeSnapper(F, vals);
+  s._vals = vals;
+  s.snap({}, '절반씩 분할한 뒤, 정렬된 조각끼리 병합합니다.');
+
+  function msort(lo, hi){
+    if(hi - lo < 2) return;
+    const mid = (lo + hi) >> 1;
+    s.setRange(lo, hi - lo, '분할 ' + lo + '..' + (hi - 1));
+    s.snap({}, '분할: ' + lo + '..' + (hi - 1) + ' → 왼쪽 ' + lo + '..' + (mid - 1) + ' / 오른쪽 ' + mid + '..' + (hi - 1));
+    msort(lo, mid);
+    msort(mid, hi);
+    merge(lo, mid, hi);
+  }
+  function merge(lo, mid, hi){
+    s.setRange(lo, hi - lo, '병합 ' + lo + '..' + (hi - 1));
+    const aux = s.order.slice(lo, hi);
+    const L = aux.slice(0, mid - lo), R = aux.slice(mid - lo);
+    s.snap({}, '병합 시작: 정렬된 두 조각의 앞 원소끼리 비교합니다');
+    let k = lo, x = 0, y = 0;
+    while(x < L.length && y < R.length){
+      const a = vals[L[x]], b = vals[R[y]], takeLeft = a <= b;
+      s.snap({ [L[x]]: 'cmp', [R[y]]: 'cmp' }, '비교: ' + a + ' vs ' + b + ' → ' + (takeLeft ? a + '(왼쪽)' : b + '(오른쪽)') + ' 기록');
+      const take = takeLeft ? L[x++] : R[y++];
+      const p = s.order.indexOf(take);
+      s.order.splice(p, 1);
+      s.order.splice(k, 0, take);
+      s.snap({ [take]: 'key' }, vals[take] + ' → ' + k + '번 칸');
+      k++;
+    }
+    const rest = x < L.length ? L.slice(x) : R.slice(y);
+    for(const t of rest){
+      const p = s.order.indexOf(t);
+      s.order.splice(p, 1);
+      s.order.splice(k, 0, t);
+      s.snap({ [t]: 'key' }, '한쪽 소진 — 남은 ' + vals[t] + ' → ' + k + '번 칸');
+      k++;
+    }
+    s.snap({}, (lo + 1) + '..' + hi + ' 구간 병합 완료 — 이 구간은 정렬됨');
+  }
+  msort(0, n);
+  s.setRange(null);
+  s.markAll();
+  s.snap({}, '✔ 정렬 완료!');
+}
+
+/* ===== 03 · 퀵 정렬 (로무토) ===== */
+function simLomuto(F, vals){
+  const n = vals.length;
+  const s = makeSnapper(F, vals);
+  s._vals = vals;
+  s.snap({}, '마지막 원소를 피벗으로 분할하는 로무토 방식입니다.');
+
+  function qs(lo, hi){
+    if(lo > hi) return;
+    if(lo === hi){
+      s.mark(s.order[lo]);
+      s.snap({}, lo + '번 칸은 원소 1개 — 자동 확정');
+      return;
+    }
+    const pvId = s.order[hi], pv = vals[pvId];
+    s.setRange(lo, hi - lo + 1, '분할 ' + lo + '..' + hi);
+    const base = { [pvId]: 'pivot' };
+    s.snap(base, '피벗 = ' + pv + ' (' + hi + '번 칸) — 피벗 이하는 왼쪽으로');
+    let i = lo - 1;
+    for(let j = lo; j < hi; j++){
+      const lessEq = vals[s.order[j]] <= pv;
+      s.snap({ ...base, [s.order[j]]: 'cmp' },
+        'j=' + j + ': ' + vals[s.order[j]] + (lessEq ? ' ≤ ' : ' > ') + '피벗 ' + pv + (lessEq ? ' → 왼쪽으로' : ' → 그대로'));
+      if(lessEq){
+        i++;
+        if(i !== j){
+          s.snap({ ...base, [s.order[i]]: 'swap', [s.order[j]]: 'swap' },
+            '교환: ' + vals[s.order[i]] + ' ↔ ' + vals[s.order[j]]);
+          const a = s.order[i], b = s.order[j];
+          s.order[i] = b; s.order[j] = a;
+          s.snap({ ...base }, '작은 값 ' + vals[s.order[i]] + '이(가) 왼쪽 구간에 들어옴');
+        }
+      }
+    }
+    s.snap({ ...base, [s.order[i + 1]]: 'swap' }, '피벗 ' + pv + '를 경계 ' + (i + 1) + '번 칸으로 이동');
+    const a = s.order[i + 1], b = s.order[hi];
+    s.order[i + 1] = b; s.order[hi] = a;
+    s.mark(s.order[i + 1]);
+    s.snap({}, '피벗 ' + pv + ' 최종 확정! 왼쪽 ' + lo + '..' + i + ' / 오른쪽 ' + (i + 2) + '..' + hi + ' 재귀');
+    qs(lo, i);
+    qs(i + 2, hi);
+  }
+  qs(0, n - 1);
+  s.setRange(null);
+  s.markAll();
+  s.snap({}, '✔ 정렬 완료!');
+}
+
+/* ===== 04 · 퀵 정렬 (호어) ===== */
+function simHoare(F, vals){
+  const n = vals.length;
+  const s = makeSnapper(F, vals);
+  s._vals = vals;
+  s.snap({}, '첫 원소를 피벗으로, 두 포인터가 안쪽으로 모여드는 호어 방식입니다.');
+
+  function qs(lo, hi){
+    if(lo > hi) return;
+    if(lo === hi){
+      s.mark(s.order[lo]);
+      s.snap({}, lo + '번 칸은 원소 1개 — 자동 확정');
+      return;
+    }
+    const pvId = s.order[lo], pv = vals[pvId];
+    s.setRange(lo, hi - lo + 1, '분할 ' + lo + '..' + hi);
+    const base = { [pvId]: 'pivot' };
+    s.snap(base, '피벗 = ' + pv + ' (' + lo + '번 칸) — i는 → 방향, j는 ← 방향 탐색');
+    let i = lo - 1, j = hi + 1;
+    for(;;){
+      do{
+        i++;
+        s.snap({ ...base, [s.order[i]]: 'cmp' }, 'i → ' + i + '번: ' + vals[s.order[i]] + (vals[s.order[i]] < pv ? ' (피벗보다 작음, 계속)' : ' (멈춤 — 교환 후보)'));
+      } while(vals[s.order[i]] < pv);
+      do{
+        j--;
+        s.snap({ ...base, [s.order[j]]: 'swap' }, 'j ← ' + j + '번: ' + vals[s.order[j]] + (vals[s.order[j]] > pv ? ' (피벗보다 큼, 계속)' : ' (멈춤 — 교환 후보)'));
+      } while(vals[s.order[j]] > pv);
+      if(i >= j){
+        s.snap({ ...base }, '포인터 교차 (i=' + i + ' ≥ j=' + j + ') — 분할 종료');
+        break;
+      }
+      s.snap({ ...base, [s.order[i]]: 'swap', [s.order[j]]: 'swap' },
+        '교환: ' + vals[s.order[i]] + ' ↔ ' + vals[s.order[j]] + ' — 잘못된 쪽 원소를 맞교환');
+      const a = s.order[i], b = s.order[j];
+      s.order[i] = b; s.order[j] = a;
+      s.snap({ ...base }, '교환 완료 — 탐색 계속');
+    }
+    s.snap({}, j + '번 칸 기준으로 [' + lo + '..' + j + '] / [' + (j + 1) + '..' + hi + '] 재귀 (피벗은 아직 이동 안 함 — 호어 특징)');
+    qs(lo, j);
+    qs(j + 1, hi);
+  }
+  qs(0, n - 1);
+  s.setRange(null);
+  s.markAll();
+  s.snap({}, '✔ 정렬 완료!');
+}
+
+/* ===== 05 · 기수 정렬 (LSD) ===== */
+function simRadix(F, vals){
+  const n = vals.length;
+  const s = makeSnapper(F, vals);
+  s._vals = vals;
+  const names = ['일의 자리', '십의 자리', '백의 자리'];
+  s.snap({}, '0~999 값을 자릿수별로 분류합니다. 비교는 한 번도 하지 않습니다.');
+  for(let pass = 0; pass < 3; pass++){
+    const exp = Math.pow(10, pass);
+    const buckets = Array.from({ length: 10 }, () => []);
+    const counts = new Array(10).fill(0);
+    s.snap({}, '— PASS ' + (pass + 1) + ': ' + names[pass] + ' 기준 분류 —');
+    for(let i = 0; i < n; i++){
+      const id = s.order[i], v = vals[id];
+      const d = Math.floor(v / exp) % 10;
+      buckets[d].push(id);
+      counts[d]++;
+      s.snap(
+        { [id]: 'cmp' },
+        'PASS ' + (pass + 1) + ': ' + v + '의 ' + names[pass] + ' = ' + d + ' → 버킷 ' + d,
+        { digits: { [id]: String(d) }, buckets: [...counts], hotBucket: d }
+      );
+    }
+    const newOrder = [];
+    for(let d = 0; d < 10; d++) newOrder.push(...buckets[d]);
+    s.order = newOrder;
+    s.snap(
+      {},
+      '분류 완료 — 버킷 0 → 9 순서대로 꺼내 재배치 (안정 순서 유지)',
+      { buckets: [...counts], hotBucket: -1 }
+    );
+    s.snap(
+      {},
+      'PASS ' + (pass + 1) + ' 재배치 완료 — 이제 ' + names[pass] + ' 기준으로 정렬된 상태'
+    );
+  }
+  s.markAll();
+  s.snap({}, '✔ 세 번의 분류만으로 정렬 완료 — 원소 간 비교 0회!');
+}
+
+/* boot */
+const configs = [
+  ['#s1', { n: 12, min: 8,  max: 99,  sim: simSelection }],
+  ['#s2', { n: 12, min: 8,  max: 99,  sim: simMerge }],
+  ['#s3', { n: 12, min: 8,  max: 99,  sim: simLomuto }],
+  ['#s4', { n: 12, min: 8,  max: 99,  sim: simHoare }],
+  ['#s5', { n: 10, min: 1,  max: 999, sim: simRadix }],
+];
+configs.forEach(([sel, cfg]) => new Player(document.querySelector(sel), cfg));
+</script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","spa":2}' crossorigin="anonymous"></script>
+</body>
+</html>

@@ -1,0 +1,61 @@
+환경: Python 3.12.14 / Linux x86_64
+
+Python 3.8+ / Jupyter / Colab
+Merge 57 cases passed
+Quick 57 cases passed
+Radix 57 cases passed
+merge [5] + [1] -> [1, 5]
+merge [2] + [8] -> [2, 8]
+merge [4] + [2, 8] -> [2, 4, 8]
+merge [1, 5] + [2, 4, 8] -> [1, 2, 4, 5, 8]
+quick 초기 [5, 1, 4, 2, 8]
+quick 중간 원소 4를 끝으로 이동 [5, 1, 8, 2, 4]
+quick j=0, i=0 [5, 1, 8, 2, 4]
+quick j=1, i=1 [1, 5, 8, 2, 4]
+quick j=2, i=1 [1, 5, 8, 2, 4]
+quick j=3, i=2 [1, 2, 8, 5, 4]
+quick 피벗 최종 위치 i=2 [1, 2, 4, 5, 8]
+radix exp 1 [170, 90, 802, 2, 24, 45, 75, 66]
+radix exp 10 [802, 2, 24, 45, 66, 170, 75, 90]
+radix exp 100 [2, 24, 45, 66, 75, 90, 170, 802]
+Merge [(1, 'C'), (2, 'A'), (2, 'B')] stable in this example: True
+Quick [(1, 'C'), (2, 'A'), (2, 'B')] stable in this example: True
+Radix [(1, 'C'), (2, 'A'), (2, 'B')] stable in this example: True
+Quick counterexample: [(1, 'C'), (1, 'A'), (1, 'B')]
+Merge and Radix stability follows from tie-handling rules; a single example is not proof.
+main benchmark complete: random, n=250
+main benchmark complete: random, n=500
+main benchmark complete: random, n=1000
+main benchmark complete: random, n=2000
+main benchmark complete: sorted, n=250
+main benchmark complete: sorted, n=500
+main benchmark complete: sorted, n=1000
+main benchmark complete: sorted, n=2000
+main benchmark complete: reverse, n=250
+main benchmark complete: reverse, n=500
+main benchmark complete: reverse, n=1000
+main benchmark complete: reverse, n=2000
+main benchmark complete: duplicates, n=250
+main benchmark complete: duplicates, n=500
+main benchmark complete: duplicates, n=1000
+main benchmark complete: duplicates, n=2000
+Main: 48 summary rows; 240 timed runs. Unit: ms per list.
+radix digit experiment complete: n=1000, range=[0,1000), d=3
+radix digit experiment complete: n=1000, range=[0,1000000), d=6
+radix digit experiment complete: n=1000, range=[0,1000000000), d=9
+Bubble 48 Week9 cases passed
+Selection 48 Week9 cases passed
+Insertion 48 Week9 cases passed
+small-n experiment complete: random, n=5, batch=100
+small-n experiment complete: random, n=10, batch=100
+small-n experiment complete: random, n=20, batch=100
+small-n experiment complete: random, n=25, batch=100
+small-n experiment complete: sorted, n=5, batch=100
+small-n experiment complete: sorted, n=10, batch=100
+small-n experiment complete: sorted, n=20, batch=100
+small-n experiment complete: sorted, n=25, batch=100
+Small n: median of 5 batch averages; elapsed_ms is per-list average.
+<IPython.core.display.Image object>
+<IPython.core.display.Image object>
+<IPython.core.display.Image object>
+<IPython.core.display.Markdown object>
